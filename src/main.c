@@ -8,6 +8,7 @@
 #include <fcntl.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define QUIT_TIMES 2
 
 
 struct termios original_terminal;
@@ -883,6 +884,9 @@ int main(int argc, char *argv[]) {
 
 
 
+    int quitTimes = QUIT_TIMES;
+
+
     while (1) {
 
 
@@ -894,9 +898,23 @@ int main(int argc, char *argv[]) {
 
         if (c == 'q') {
 
+
+            if (editor.dirty && quitTimes > 0) {
+
+
+                quitTimes--;
+
+                continue;
+
+            }
+
+
             break;
 
         }
+
+
+        quitTimes = QUIT_TIMES;
 
 
         switch(c) {
