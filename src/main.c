@@ -223,6 +223,41 @@ int editorReadKey() {
 
 
 
+
+void editorInsertRow(char *text, int length) {
+
+
+    editor.rows = realloc(
+        editor.rows,
+        sizeof(editorRow) * (editor.numberOfRows + 1)
+    );
+
+
+    int rowIndex = editor.numberOfRows;
+
+
+    editor.rows[rowIndex].size = length;
+
+
+    editor.rows[rowIndex].chars = malloc(length + 1);
+
+
+    memcpy(
+        editor.rows[rowIndex].chars,
+        text,
+        length
+    );
+
+
+    editor.rows[rowIndex].chars[length] = '\0';
+
+
+    editor.numberOfRows++;
+
+}
+
+
+
 void getWindowSize() {
 
     struct winsize size;
@@ -375,6 +410,9 @@ int main() {
     editor.numberOfRows = 0;
 
     editor.rows = NULL;
+
+
+    editorInsertRow("Welcome to LuminaEdit", 21);
 
 
     while (1) {
