@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <errno.h>
@@ -19,8 +20,59 @@ enum editorKey {
 
 
 /*
- Exit after printing system error
+ Append buffer stores a complete terminal frame
+ before writing it to the screen
 */
+struct appendBuffer {
+
+    char *buffer;
+    int length;
+
+};
+
+
+#define APPEND_INIT {NULL, 0}
+
+
+void append(
+    struct appendBuffer *ab,
+    const char *string,
+    int length
+) {
+
+    char *new_buffer = realloc(
+        ab->buffer,
+        ab->length + length
+    );
+
+
+    if (new_buffer == NULL)
+        return;
+
+
+    memcpy(
+        &new_buffer[ab->length],
+        string,
+        length
+    );
+
+
+    ab->buffer = new_buffer;
+
+    ab->length += length;
+
+}
+
+
+
+void freeAppendBuffer(struct appendBuffer *ab) {
+
+    free(ab->buffer);
+
+}
+
+
+
 void die(const char *message) {
 
     perror(message);
@@ -29,9 +81,7 @@ void die(const char *message) {
 }
 
 
-/*
- Restore terminal back to normal mode
-*/
+
 void disableRawMode() {
 
     if (tcsetattr(
@@ -39,22 +89,24 @@ void disableRawMode() {
         TCSAFLUSH,
         &original_terminal
     ) == -1) {
+
         die("tcsetattr");
+
     }
 
 }
 
 
-/*
- Enable raw terminal mode
-*/
+
 void enableRawMode() {
 
     if (tcgetattr(
         STDIN_FILENO,
         &original_terminal
     ) == -1) {
+
         die("tcgetattr");
+
     }
 
 
@@ -76,29 +128,24 @@ void enableRawMode() {
         TCSAFLUSH,
         &raw
     ) == -1) {
+
         die("tcsetattr");
+
     }
 
 }
 
 
-/*
- Read exactly one key press
-*/
+
 int editorReadKey() {
 
     char c;
 
 
-    int bytes_read = read(
-        STDIN_FILENO,
-        &c,
-        1
-    );
+    if (read(STDIN_FILENO, &c, 1) == -1) {
 
-
-    if (bytes_read == -1) {
         die("read");
+
     }
 
 
@@ -120,17 +167,13 @@ int editorReadKey() {
 
             switch(sequence[1]) {
 
-                case 'A':
-                    return ARROW_UP;
+                case 'A': return ARROW_UP;
 
-                case 'B':
-                    return ARROW_DOWN;
+                case 'B': return ARROW_DOWN;
 
-                case 'C':
-                    return ARROW_RIGHT;
+                case 'C': return ARROW_RIGHT;
 
-                case 'D':
-                    return ARROW_LEFT;
+                case 'D': return ARROW_LEFT;
 
             }
 
@@ -143,45 +186,56 @@ int editorReadKey() {
 
 
     return c;
+
 }
 
 
 
-
-
-/*
- Clear terminal screen and reset cursor position
-*/
 void editorRefreshScreen() {
 
-    // Clear entire screen
-    write(STDOUT_FILENO, "\x1b[2J", 4);
+
+    struct appendBuffer ab = APPEND_INIT;
 
 
-    // Move cursor to top-left
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    append(&ab, "\x1b[2J", 4);
+
+    append(&ab, "\x1b[H", 3);
 
 
-    // Draw empty editor rows
+
     for (int i = 0; i < 20; i++) {
 
-        write(STDOUT_FILENO, "~\r\n", 3);
+        append(&ab, "~\r\n", 3);
 
     }
 
 
-    // Return cursor to top-left
-    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    append(&ab, "\x1b[H", 3);
+
+
+
+    write(
+        STDOUT_FILENO,
+        ab.buffer,
+        ab.length
+    );
+
+
+    freeAppendBuffer(&ab);
 
 }
 
 
+
 int main() {
+
 
     enableRawMode();
 
 
     while (1) {
+
 
         editorRefreshScreen();
 
@@ -191,9 +245,6 @@ int main() {
 
         if (c == 'q') {
 
-            write(STDOUT_FILENO, "\x1b[2J", 4);
-            write(STDOUT_FILENO, "\x1b[H", 3);
-
             break;
 
         }
@@ -202,4 +253,5 @@ int main() {
 
 
     return 0;
+
 }
