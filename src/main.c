@@ -43,9 +43,18 @@ struct editorConfig {
 struct editorConfig editor;
 
 
+void editorInsertRowAt(
+    int index,
+    char *text,
+    int length
+);
+
+
 enum editorKey {
 
     BACKSPACE = 127,
+
+    ENTER = 13,
 
     ARROW_LEFT = 1000,
     ARROW_RIGHT,
@@ -315,6 +324,55 @@ void editorRowInsertChar(editorRow *row, int position, int character) {
 
 
 
+
+void editorInsertNewLine() {
+
+
+    editorRow *row = &editor.rows[editor.cy];
+
+
+    char *rightSide = malloc(row->size - editor.cx + 1);
+
+
+    memcpy(
+        rightSide,
+        &row->chars[editor.cx],
+        row->size - editor.cx
+    );
+
+
+    rightSide[row->size - editor.cx] = '\0';
+
+
+    int rightLength = row->size - editor.cx;
+
+
+    editorInsertRowAt(
+        editor.cy + 1,
+        rightSide,
+        rightLength
+    );
+
+
+    row = &editor.rows[editor.cy];
+
+
+    row->size = editor.cx;
+
+    row->chars[row->size] = '\0';
+
+
+    free(rightSide);
+
+
+    editor.cy++;
+
+    editor.cx = 0;
+
+}
+
+
+
 void editorInsertChar(int character) {
 
 
@@ -338,7 +396,14 @@ void editorInsertChar(int character) {
 
 
 
-void editorInsertRow(char *text, int length) {
+void editorInsertRowAt(int index, char *text, int length) {
+
+
+    if (index < 0 || index > editor.numberOfRows) {
+
+        return;
+
+    }
 
 
     editor.rows = realloc(
@@ -347,26 +412,42 @@ void editorInsertRow(char *text, int length) {
     );
 
 
-    int rowIndex = editor.numberOfRows;
+    memmove(
+        &editor.rows[index + 1],
+        &editor.rows[index],
+        sizeof(editorRow) * (editor.numberOfRows - index)
+    );
 
 
-    editor.rows[rowIndex].size = length;
+    editor.rows[index].size = length;
 
 
-    editor.rows[rowIndex].chars = malloc(length + 1);
+    editor.rows[index].chars = malloc(length + 1);
 
 
     memcpy(
-        editor.rows[rowIndex].chars,
+        editor.rows[index].chars,
         text,
         length
     );
 
 
-    editor.rows[rowIndex].chars[length] = '\0';
+    editor.rows[index].chars[length] = '\0';
 
 
     editor.numberOfRows++;
+
+}
+
+
+
+void editorInsertRow(char *text, int length) {
+
+    editorInsertRowAt(
+        editor.numberOfRows,
+        text,
+        length
+    );
 
 }
 
@@ -646,6 +727,13 @@ int main(int argc, char *argv[]) {
             case BACKSPACE:
 
                 editorDeleteChar();
+
+                break;
+
+
+            case ENTER:
+
+                editorInsertNewLine();
 
                 break;
 
