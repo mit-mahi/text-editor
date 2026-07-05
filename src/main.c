@@ -147,6 +147,35 @@ int editorReadKey() {
 
 
 
+
+
+/*
+ Clear terminal screen and reset cursor position
+*/
+void editorRefreshScreen() {
+
+    // Clear entire screen
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+
+
+    // Move cursor to top-left
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+
+    // Draw empty editor rows
+    for (int i = 0; i < 20; i++) {
+
+        write(STDOUT_FILENO, "~\r\n", 3);
+
+    }
+
+
+    // Return cursor to top-left
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+}
+
+
 int main() {
 
     enableRawMode();
@@ -154,15 +183,20 @@ int main() {
 
     while (1) {
 
+        editorRefreshScreen();
+
+
         int c = editorReadKey();
 
 
         if (c == 'q') {
+
+            write(STDOUT_FILENO, "\x1b[2J", 4);
+            write(STDOUT_FILENO, "\x1b[H", 3);
+
             break;
+
         }
-
-
-        printf("%d\r\n", c);
 
     }
 
