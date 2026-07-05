@@ -39,11 +39,26 @@ void enableRawMode() {
     struct termios raw = original_terminal;
 
 
-    // Disable:
+    // Disable input processing:
+    // IXON  -> Ctrl-S / Ctrl-Q terminal flow control
+    // ICRNL -> automatic carriage return conversion
+
+    raw.c_iflag &= ~(IXON | ICRNL);
+
+
+    // Disable output processing:
+    // OPOST -> terminal output transformations
+
+    raw.c_oflag &= ~(OPOST);
+
+
+    // Disable local terminal features:
     // ECHO   -> automatic printing
     // ICANON -> line buffering
+    // ISIG   -> Ctrl-C / Ctrl-Z signals
+    // IEXTEN -> extended shortcuts
 
-    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
 
 
     tcsetattr(
