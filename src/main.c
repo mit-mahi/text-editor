@@ -12,6 +12,17 @@
 #define QUIT_TIMES 2
 
 
+enum editorHighlight {
+
+    HL_NORMAL = 0,
+
+    HL_KEYWORD,
+
+    HL_NUMBER
+
+};
+
+
 struct termios original_terminal;
 
 
@@ -21,6 +32,9 @@ typedef struct editorRow {
     int size;
 
     char *chars;
+
+
+    unsigned char *highlight;
 
 } editorRow;
 
@@ -419,6 +433,86 @@ void editorInsertChar(int character) {
 
 
 
+
+
+char *C_HIGHLIGHT_KEYWORDS[] = {
+
+    "int",
+    "char",
+    "return",
+    "if",
+    "else",
+    "for",
+    "while",
+    "struct",
+    NULL
+
+};
+
+
+
+void editorUpdateSyntax(editorRow *row) {
+
+
+    memset(
+        row->highlight,
+        HL_NORMAL,
+        row->size
+    );
+
+
+    for (int i = 0; i < row->size; i++) {
+
+
+        if (isdigit(row->chars[i])) {
+
+
+            row->highlight[i] = HL_NUMBER;
+
+            continue;
+
+        }
+
+
+        for (int j = 0; C_HIGHLIGHT_KEYWORDS[j]; j++) {
+
+
+            int length = strlen(
+                C_HIGHLIGHT_KEYWORDS[j]
+            );
+
+
+            if (
+                !strncmp(
+                    &row->chars[i],
+                    C_HIGHLIGHT_KEYWORDS[j],
+                    length
+                )
+            ) {
+
+
+                memset(
+                    &row->highlight[i],
+                    HL_KEYWORD,
+                    length
+                );
+
+
+                i += length - 1;
+
+
+                break;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+
 void editorInsertRowAt(int index, char *text, int length) {
 
 
@@ -456,6 +550,21 @@ void editorInsertRowAt(int index, char *text, int length) {
 
 
     editor.rows[index].chars[length] = '\0';
+
+
+    editor.rows[index].highlight = malloc(length);
+
+
+    memset(
+        editor.rows[index].highlight,
+        HL_NORMAL,
+        length
+    );
+
+
+    editorUpdateSyntax(
+        &editor.rows[index]
+    );
 
 
     editor.numberOfRows++;
@@ -886,6 +995,33 @@ void editorScroll() {
 
 
 
+
+int editorSyntaxColor(int highlight) {
+
+
+    switch(highlight) {
+
+
+        case HL_NUMBER:
+
+            return 31;
+
+
+        case HL_KEYWORD:
+
+            return 32;
+
+
+        default:
+
+            return 37;
+
+    }
+
+}
+
+
+
 void editorDrawStatusBar(struct appendBuffer *ab) {
 
 
@@ -965,10 +1101,59 @@ void editorRefreshScreen() {
 
         else {
 
+            editorRow *row = &editor.rows[fileRow];
+
+
+            int currentColor = -1;
+
+
+            for (int j = 0; j < row->size; j++) {
+
+
+                int color = editorSyntaxColor(
+                    row->highlight[j]
+                );
+
+
+                if (color != currentColor) {
+
+
+                    currentColor = color;
+
+
+                    char buffer[16];
+
+
+                    snprintf(
+                        buffer,
+                        sizeof(buffer),
+                        "\x1b[%dm",
+                        color
+                    );
+
+
+                    append(
+                        &ab,
+                        buffer,
+                        strlen(buffer)
+                    );
+
+                }
+
+
+                append(
+                    &ab,
+                    &row->chars[j],
+                    1
+                );
+
+            }
+
+
             append(
                 &ab,
-                editor.rows[fileRow].chars,
-                editor.rows[fileRow].size
+                "\x1b[39m",
+                5
             );
 
         }
