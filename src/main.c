@@ -45,6 +45,8 @@ struct editorConfig editor;
 
 enum editorKey {
 
+    BACKSPACE = 127,
+
     ARROW_LEFT = 1000,
     ARROW_RIGHT,
     ARROW_UP,
@@ -225,6 +227,59 @@ int editorReadKey() {
 
 
 
+
+
+
+
+void editorRowDeleteChar(editorRow *row, int position) {
+
+
+    if (position < 0 || position >= row->size) {
+
+        return;
+
+    }
+
+
+    memmove(
+        &row->chars[position],
+        &row->chars[position + 1],
+        row->size - position
+    );
+
+
+    row->size--;
+
+}
+
+
+
+void editorDeleteChar() {
+
+
+    if (editor.cy == editor.numberOfRows) {
+
+        return;
+
+    }
+
+
+    if (editor.cx == 0) {
+
+        return;
+
+    }
+
+
+    editorRowDeleteChar(
+        &editor.rows[editor.cy],
+        editor.cx - 1
+    );
+
+
+    editor.cx--;
+
+}
 
 
 
@@ -586,6 +641,14 @@ int main(int argc, char *argv[]) {
 
 
         switch(c) {
+
+
+            case BACKSPACE:
+
+                editorDeleteChar();
+
+                break;
+
 
             case ARROW_LEFT:
             case ARROW_RIGHT:
