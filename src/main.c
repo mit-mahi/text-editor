@@ -8,6 +8,16 @@
 struct termios original_terminal;
 
 
+enum editorKey {
+
+    ARROW_LEFT = 1000,
+    ARROW_RIGHT,
+    ARROW_UP,
+    ARROW_DOWN
+
+};
+
+
 /*
  Exit after printing system error
 */
@@ -75,9 +85,10 @@ void enableRawMode() {
 /*
  Read exactly one key press
 */
-char editorReadKey() {
+int editorReadKey() {
 
     char c;
+
 
     int bytes_read = read(
         STDIN_FILENO,
@@ -88,6 +99,46 @@ char editorReadKey() {
 
     if (bytes_read == -1) {
         die("read");
+    }
+
+
+    if (c == '\x1b') {
+
+        char sequence[2];
+
+
+        if (read(STDIN_FILENO, &sequence[0], 1) != 1)
+            return '\x1b';
+
+
+        if (read(STDIN_FILENO, &sequence[1], 1) != 1)
+            return '\x1b';
+
+
+
+        if (sequence[0] == '[') {
+
+            switch(sequence[1]) {
+
+                case 'A':
+                    return ARROW_UP;
+
+                case 'B':
+                    return ARROW_DOWN;
+
+                case 'C':
+                    return ARROW_RIGHT;
+
+                case 'D':
+                    return ARROW_LEFT;
+
+            }
+
+        }
+
+
+        return '\x1b';
+
     }
 
 
@@ -103,7 +154,7 @@ int main() {
 
     while (1) {
 
-        char c = editorReadKey();
+        int c = editorReadKey();
 
 
         if (c == 'q') {
