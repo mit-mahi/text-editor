@@ -1,23 +1,51 @@
-# LuminaEdit
+# Lumina — Terminal Text Editor in C
 
-LuminaEdit is a lightweight terminal-based text editor built from scratch in C, inspired by Kilo. The project focuses on understanding low-level editor internals by implementing terminal control, rendering, text manipulation, and file operations without external libraries.
-
-It directly interacts with Unix terminals using POSIX APIs, featuring raw-mode input handling, ANSI escape sequence rendering, dynamic text buffers, manual memory management, and filesystem integration.
+Lumina is a zero-dependency terminal text editor built from scratch in C using low-level POSIX APIs.  
+It implements its own terminal control, rendering engine, text buffer, editing system, filesystem layer, search, and syntax highlighting.
 
 ## Features
 
-- Raw terminal mode using `termios` for byte-level input processing
-- Custom keyboard event handling with ANSI escape sequence parsing
-- Flicker-free rendering through buffered screen updates
-- Dynamic row-based text storage using manual memory management
-- Cursor navigation, scrolling, and editing operations
-- File loading and saving through Unix system calls
-- Incremental search and syntax highlighting support
+### Terminal Engine
+- Raw terminal mode using termios
+- Byte-by-byte keyboard input handling
+- ANSI VT100 escape sequence rendering
+- Dynamic terminal size detection
+- Cursor positioning and viewport scrolling
 
-## Tech Stack
+### Text Editing Engine
+- Dynamic in-memory text buffer using custom row structures
+- Manual memory management using malloc, realloc, and free
+- Character insertion and deletion
+- Multi-line editing with row splitting
+- Efficient buffer manipulation using memcpy and memmove
 
-- C
-- POSIX APIs
-- GCC/Clang
-- Make
-- Git
+### File System Support
+- File loading from disk
+- Save support using Ctrl-S
+- POSIX based persistence using:
+  - open()
+  - write()
+  - ftruncate()
+  - close()
+
+### Editor State Management
+- Filename tracking
+- Dirty-state detection
+- Modified status indicator
+- Unsaved-change protection
+
+### Search
+- Interactive Ctrl-F search prompt
+- Dynamic query buffer
+- Cursor navigation to matches
+
+### Syntax Highlighting
+- Custom token classification engine
+- C keyword highlighting
+- Number highlighting
+- ANSI color rendering
+
+## Build
+
+```bash
+make
