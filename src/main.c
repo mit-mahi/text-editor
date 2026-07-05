@@ -4,9 +4,21 @@
 #include <termios.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 
 
 struct termios original_terminal;
+
+
+struct editorConfig {
+
+    int screenRows;
+    int screenCols;
+
+};
+
+
+struct editorConfig editor;
 
 
 enum editorKey {
@@ -191,6 +203,30 @@ int editorReadKey() {
 
 
 
+
+void getWindowSize() {
+
+    struct winsize size;
+
+
+    if (ioctl(
+        STDOUT_FILENO,
+        TIOCGWINSZ,
+        &size
+    ) == -1) {
+
+        die("ioctl");
+
+    }
+
+
+    editor.screenRows = size.ws_row;
+    editor.screenCols = size.ws_col;
+
+}
+
+
+
 void editorRefreshScreen() {
 
 
@@ -203,7 +239,7 @@ void editorRefreshScreen() {
 
 
 
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < editor.screenRows; i++) {
 
         append(&ab, "~\r\n", 3);
 
@@ -232,6 +268,9 @@ int main() {
 
 
     enableRawMode();
+
+
+    getWindowSize();
 
 
     while (1) {
