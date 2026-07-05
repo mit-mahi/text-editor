@@ -227,6 +227,62 @@ int editorReadKey() {
 
 
 
+
+void editorRowInsertChar(editorRow *row, int position, int character) {
+
+
+    if (position < 0 || position > row->size) {
+
+        position = row->size;
+
+    }
+
+
+    row->chars = realloc(
+        row->chars,
+        row->size + 2
+    );
+
+
+    memmove(
+        &row->chars[position + 1],
+        &row->chars[position],
+        row->size - position + 1
+    );
+
+
+    row->size++;
+
+
+    row->chars[position] = character;
+
+}
+
+
+
+void editorInsertChar(int character) {
+
+
+    if (editor.cy == editor.numberOfRows) {
+
+        return;
+
+    }
+
+
+    editorRowInsertChar(
+        &editor.rows[editor.cy],
+        editor.cx,
+        character
+    );
+
+
+    editor.cx++;
+
+}
+
+
+
 void editorInsertRow(char *text, int length) {
 
 
@@ -407,9 +463,11 @@ void editorRefreshScreen() {
     struct appendBuffer ab = APPEND_INIT;
 
 
-    append(&ab, "\x1b[2J", 4);
+    append(&ab, "\x1b[?25l", 6);
 
     append(&ab, "\x1b[H", 3);
+
+    append(&ab, "\x1b[J", 3);
 
 
 
@@ -436,7 +494,11 @@ void editorRefreshScreen() {
         }
 
 
-        append(&ab, "\r\n", 2);
+        if (i < editor.screenRows - 1) {
+
+            append(&ab, "\r\n", 2);
+
+        }
 
     }
 
@@ -460,6 +522,9 @@ void editorRefreshScreen() {
         strlen(cursorPosition)
     );
 
+
+
+    append(&ab, "\x1b[?25h", 6);
 
 
     write(
@@ -528,6 +593,12 @@ int main(int argc, char *argv[]) {
             case ARROW_DOWN:
 
                 moveCursor(c);
+                break;
+
+
+            default:
+
+                editorInsertChar(c);
                 break;
 
         }
