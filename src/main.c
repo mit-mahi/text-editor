@@ -2,9 +2,21 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+#include <errno.h>
 
 
 struct termios original_terminal;
+
+
+/*
+ Exit after printing system error
+*/
+void die(const char *message) {
+
+    perror(message);
+    exit(1);
+
+}
 
 
 /*
@@ -12,11 +24,13 @@ struct termios original_terminal;
 */
 void disableRawMode() {
 
-    tcsetattr(
+    if (tcsetattr(
         STDIN_FILENO,
         TCSAFLUSH,
         &original_terminal
-    );
+    ) == -1) {
+        die("tcsetattr");
+    }
 
 }
 
@@ -26,47 +40,60 @@ void disableRawMode() {
 */
 void enableRawMode() {
 
-    // Save current terminal settings
-    tcgetattr(
+    if (tcgetattr(
         STDIN_FILENO,
         &original_terminal
-    );
+    ) == -1) {
+        die("tcgetattr");
+    }
 
-    // Restore terminal when program exits
+
     atexit(disableRawMode);
 
 
     struct termios raw = original_terminal;
 
 
-    // Disable input processing:
-    // IXON  -> Ctrl-S / Ctrl-Q terminal flow control
-    // ICRNL -> automatic carriage return conversion
-
     raw.c_iflag &= ~(IXON | ICRNL);
 
-
-    // Disable output processing:
-    // OPOST -> terminal output transformations
-
     raw.c_oflag &= ~(OPOST);
-
-
-    // Disable local terminal features:
-    // ECHO   -> automatic printing
-    // ICANON -> line buffering
-    // ISIG   -> Ctrl-C / Ctrl-Z signals
-    // IEXTEN -> extended shortcuts
 
     raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
 
 
-    tcsetattr(
+    if (tcsetattr(
         STDIN_FILENO,
         TCSAFLUSH,
         &raw
-    );
+    ) == -1) {
+        die("tcsetattr");
+    }
+
 }
+
+
+/*
+ Read exactly one key press
+*/
+char editorReadKey() {
+
+    char c;
+
+    int bytes_read = read(
+        STDIN_FILENO,
+        &c,
+        1
+    );
+
+
+    if (bytes_read == -1) {
+        die("read");
+    }
+
+
+    return c;
+}
+
 
 
 int main() {
@@ -74,13 +101,17 @@ int main() {
     enableRawMode();
 
 
-    char c;
+    while (1) {
 
-    while (read(STDIN_FILENO, &c, 1) == 1) {
+        char c = editorReadKey();
+
 
         if (c == 'q') {
             break;
         }
+
+
+        printf("%d\r\n", c);
 
     }
 
