@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define QUIT_TIMES 2
@@ -58,6 +59,12 @@ void editorInsertRowAt(
     char *text,
     int length
 );
+
+
+void editorRefreshScreen();
+
+
+int editorReadKey();
 
 
 enum editorKey {
@@ -520,6 +527,172 @@ char *editorRowsToString(int *bufferLength) {
 
 
 
+
+char *editorPrompt(char *prompt) {
+
+
+    int bufferSize = 128;
+
+    char *buffer = malloc(bufferSize);
+
+
+    int length = 0;
+
+    buffer[0] = '\0';
+
+
+    while (1) {
+
+
+        editorRefreshScreen();
+
+
+        char promptPosition[32];
+
+
+        snprintf(
+            promptPosition,
+            sizeof(promptPosition),
+            "\x1b[%d;1H",
+            editor.screenRows
+        );
+
+
+        write(
+            STDOUT_FILENO,
+            promptPosition,
+            strlen(promptPosition)
+        );
+
+
+        write(
+            STDOUT_FILENO,
+            prompt,
+            strlen(prompt)
+        );
+
+
+        write(
+            STDOUT_FILENO,
+            buffer,
+            length
+        );
+
+
+        int c = editorReadKey();
+
+
+        if (c == '\r') {
+
+
+            if (length != 0) {
+
+                return buffer;
+
+            }
+
+        }
+
+
+        else if (c == 27) {
+
+
+            free(buffer);
+
+            return NULL;
+
+        }
+
+
+        else if (!iscntrl(c) && c < 128) {
+
+
+            if (length == bufferSize - 1) {
+
+
+                bufferSize *= 2;
+
+                buffer = realloc(
+                    buffer,
+                    bufferSize
+                );
+
+            }
+
+
+            buffer[length++] = c;
+
+            buffer[length] = '\0';
+
+        }
+
+    }
+
+}
+
+
+
+
+void editorFind() {
+
+
+    char *query = editorPrompt("Search: ");
+
+
+    if (query == NULL) {
+
+        return;
+
+    }
+
+
+    for (int i = 0; i < editor.numberOfRows; i++) {
+
+
+        editorRow *row = &editor.rows[i];
+
+
+        char *match = strstr(
+            row->chars,
+            query
+        );
+
+
+        if (match) {
+
+
+            editor.cy = i;
+
+            editor.cx = match - row->chars;
+
+
+            write(
+                STDOUT_FILENO,
+                "\x1b[2J",
+                4
+            );
+
+
+            write(
+                STDOUT_FILENO,
+                "\x1b[H",
+                3
+            );
+
+
+            break;
+
+        }
+
+    }
+
+
+    free(query);
+
+}
+
+
+
 void editorSave() {
 
 
@@ -909,6 +1082,20 @@ int main(int argc, char *argv[]) {
             }
 
 
+            write(
+                STDOUT_FILENO,
+                "\x1b[2J",
+                4
+            );
+
+
+            write(
+                STDOUT_FILENO,
+                "\x1b[H",
+                3
+            );
+
+
             break;
 
         }
@@ -923,6 +1110,13 @@ int main(int argc, char *argv[]) {
             case CTRL_KEY('s'):
 
                 editorSave();
+
+                break;
+
+
+            case CTRL_KEY('f'):
+
+                editorFind();
 
                 break;
 
