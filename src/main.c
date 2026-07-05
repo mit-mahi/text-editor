@@ -12,6 +12,9 @@ struct termios original_terminal;
 
 struct editorConfig {
 
+    int cx;
+    int cy;
+
     int screenRows;
     int screenCols;
 
@@ -227,6 +230,48 @@ void getWindowSize() {
 
 
 
+
+void moveCursor(int key) {
+
+    switch(key) {
+
+        case ARROW_LEFT:
+
+            if (editor.cx != 0)
+                editor.cx--;
+
+            break;
+
+
+        case ARROW_RIGHT:
+
+            if (editor.cx != editor.screenCols - 1)
+                editor.cx++;
+
+            break;
+
+
+        case ARROW_UP:
+
+            if (editor.cy != 0)
+                editor.cy--;
+
+            break;
+
+
+        case ARROW_DOWN:
+
+            if (editor.cy != editor.screenRows - 1)
+                editor.cy++;
+
+            break;
+
+    }
+
+}
+
+
+
 void editorRefreshScreen() {
 
 
@@ -247,7 +292,23 @@ void editorRefreshScreen() {
 
 
 
-    append(&ab, "\x1b[H", 3);
+    char cursorPosition[32];
+
+
+    snprintf(
+        cursorPosition,
+        sizeof(cursorPosition),
+        "\x1b[%d;%dH",
+        editor.cy + 1,
+        editor.cx + 1
+    );
+
+
+    append(
+        &ab,
+        cursorPosition,
+        strlen(cursorPosition)
+    );
 
 
 
@@ -273,6 +334,10 @@ int main() {
     getWindowSize();
 
 
+    editor.cx = 0;
+    editor.cy = 0;
+
+
     while (1) {
 
 
@@ -285,6 +350,19 @@ int main() {
         if (c == 'q') {
 
             break;
+
+        }
+
+
+        switch(c) {
+
+            case ARROW_LEFT:
+            case ARROW_RIGHT:
+            case ARROW_UP:
+            case ARROW_DOWN:
+
+                moveCursor(c);
+                break;
 
         }
 
