@@ -10,6 +10,17 @@
 struct termios original_terminal;
 
 
+
+typedef struct editorRow {
+
+    int size;
+
+    char *chars;
+
+} editorRow;
+
+
+
 struct editorConfig {
 
     int cx;
@@ -17,6 +28,11 @@ struct editorConfig {
 
     int screenRows;
     int screenCols;
+
+
+    int numberOfRows;
+
+    editorRow *rows;
 
 };
 
@@ -286,7 +302,25 @@ void editorRefreshScreen() {
 
     for (int i = 0; i < editor.screenRows; i++) {
 
-        append(&ab, "~\r\n", 3);
+
+        if (i >= editor.numberOfRows) {
+
+            append(&ab, "~", 1);
+
+        }
+
+        else {
+
+            append(
+                &ab,
+                editor.rows[i].chars,
+                editor.rows[i].size
+            );
+
+        }
+
+
+        append(&ab, "\r\n", 2);
 
     }
 
@@ -336,6 +370,11 @@ int main() {
 
     editor.cx = 0;
     editor.cy = 0;
+
+
+    editor.numberOfRows = 0;
+
+    editor.rows = NULL;
 
 
     while (1) {
