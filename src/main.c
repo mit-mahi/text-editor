@@ -26,6 +26,9 @@ struct editorConfig {
     int cx;
     int cy;
 
+
+    int rowOffset;
+
     int screenRows;
     int screenCols;
 
@@ -363,7 +366,7 @@ void moveCursor(int key) {
 
         case ARROW_DOWN:
 
-            if (editor.cy != editor.screenRows - 1)
+            if (editor.cy < editor.numberOfRows - 1)
                 editor.cy++;
 
             break;
@@ -374,7 +377,31 @@ void moveCursor(int key) {
 
 
 
+
+void editorScroll() {
+
+
+    if (editor.cy < editor.rowOffset) {
+
+        editor.rowOffset = editor.cy;
+
+    }
+
+
+    if (editor.cy >= editor.rowOffset + editor.screenRows) {
+
+        editor.rowOffset = editor.cy - editor.screenRows + 1;
+
+    }
+
+}
+
+
+
 void editorRefreshScreen() {
+
+
+    editorScroll();
 
 
     struct appendBuffer ab = APPEND_INIT;
@@ -389,7 +416,10 @@ void editorRefreshScreen() {
     for (int i = 0; i < editor.screenRows; i++) {
 
 
-        if (i >= editor.numberOfRows) {
+        int fileRow = i + editor.rowOffset;
+
+
+        if (fileRow >= editor.numberOfRows) {
 
             append(&ab, "~", 1);
 
@@ -399,8 +429,8 @@ void editorRefreshScreen() {
 
             append(
                 &ab,
-                editor.rows[i].chars,
-                editor.rows[i].size
+                editor.rows[fileRow].chars,
+                editor.rows[fileRow].size
             );
 
         }
@@ -419,7 +449,7 @@ void editorRefreshScreen() {
         cursorPosition,
         sizeof(cursorPosition),
         "\x1b[%d;%dH",
-        editor.cy + 1,
+        (editor.cy - editor.rowOffset) + 1,
         editor.cx + 1
     );
 
@@ -456,6 +486,9 @@ int main(int argc, char *argv[]) {
 
     editor.cx = 0;
     editor.cy = 0;
+
+
+    editor.rowOffset = 0;
 
 
     editor.numberOfRows = 0;
