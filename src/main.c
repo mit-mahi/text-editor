@@ -258,6 +258,57 @@ void editorInsertRow(char *text, int length) {
 
 
 
+
+void editorOpen(char *filename) {
+
+
+    FILE *file = fopen(filename, "r");
+
+
+    if (!file) {
+
+        die("fopen");
+
+    }
+
+
+    char *line = NULL;
+
+    size_t capacity = 0;
+
+    ssize_t length;
+
+
+
+    while ((length = getline(&line, &capacity, file)) != -1) {
+
+
+        while (
+            length > 0 &&
+            (
+                line[length - 1] == '\n' ||
+                line[length - 1] == '\r'
+            )
+        ) {
+
+            length--;
+
+        }
+
+
+        editorInsertRow(line, length);
+
+    }
+
+
+    free(line);
+
+    fclose(file);
+
+}
+
+
+
 void getWindowSize() {
 
     struct winsize size;
@@ -394,7 +445,7 @@ void editorRefreshScreen() {
 
 
 
-int main() {
+int main(int argc, char *argv[]) {
 
 
     enableRawMode();
@@ -412,7 +463,12 @@ int main() {
     editor.rows = NULL;
 
 
-    editorInsertRow("Welcome to LuminaEdit", 21);
+    if (argc >= 2) {
+
+        editorOpen(argv[1]);
+
+    }
+
 
 
     while (1) {
