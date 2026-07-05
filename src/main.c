@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
+
+#define CTRL_KEY(k) ((k) & 0x1f)
 
 
 struct termios original_terminal;
@@ -36,6 +39,9 @@ struct editorConfig {
     int numberOfRows;
 
     editorRow *rows;
+
+
+    char *filename;
 
 };
 
@@ -454,7 +460,110 @@ void editorInsertRow(char *text, int length) {
 
 
 
+
+char *editorRowsToString(int *bufferLength) {
+
+
+    int totalLength = 0;
+
+
+    for (int i = 0; i < editor.numberOfRows; i++) {
+
+        totalLength += editor.rows[i].size + 1;
+
+    }
+
+
+    *bufferLength = totalLength;
+
+
+    char *buffer = malloc(totalLength);
+
+
+    char *position = buffer;
+
+
+    for (int i = 0; i < editor.numberOfRows; i++) {
+
+
+        memcpy(
+            position,
+            editor.rows[i].chars,
+            editor.rows[i].size
+        );
+
+
+        position += editor.rows[i].size;
+
+
+        *position = '\n';
+
+        position++;
+
+    }
+
+
+    return buffer;
+
+}
+
+
+
+
+void editorSave() {
+
+
+    if (editor.filename == NULL) {
+
+        return;
+
+    }
+
+
+    int length;
+
+
+    char *buffer = editorRowsToString(&length);
+
+
+    int fileDescriptor = open(
+        editor.filename,
+        O_RDWR | O_CREAT,
+        0644
+    );
+
+
+    if (fileDescriptor != -1) {
+
+
+        ftruncate(
+            fileDescriptor,
+            length
+        );
+
+
+        write(
+            fileDescriptor,
+            buffer,
+            length
+        );
+
+
+        close(fileDescriptor);
+
+    }
+
+
+    free(buffer);
+
+}
+
+
+
 void editorOpen(char *filename) {
+
+
+    editor.filename = strdup(filename);
 
 
     FILE *file = fopen(filename, "r");
@@ -696,6 +805,8 @@ int main(int argc, char *argv[]) {
 
     editor.rows = NULL;
 
+    editor.filename = NULL;
+
 
     if (argc >= 2) {
 
@@ -722,6 +833,13 @@ int main(int argc, char *argv[]) {
 
 
         switch(c) {
+
+
+            case CTRL_KEY('s'):
+
+                editorSave();
+
+                break;
 
 
             case BACKSPACE:
