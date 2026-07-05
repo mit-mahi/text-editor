@@ -43,6 +43,9 @@ struct editorConfig {
 
     char *filename;
 
+
+    int dirty;
+
 };
 
 
@@ -294,6 +297,9 @@ void editorDeleteChar() {
 
     editor.cx--;
 
+
+    editor.dirty = 1;
+
 }
 
 
@@ -397,6 +403,9 @@ void editorInsertChar(int character) {
 
 
     editor.cx++;
+
+
+    editor.dirty = 1;
 
 }
 
@@ -551,6 +560,9 @@ void editorSave() {
 
         close(fileDescriptor);
 
+
+        editor.dirty = 0;
+
     }
 
 
@@ -699,6 +711,55 @@ void editorScroll() {
 
 
 
+
+void editorDrawStatusBar(struct appendBuffer *ab) {
+
+
+    append(ab, "\x1b[7m", 4);
+
+
+    char status[80];
+
+
+    int length = snprintf(
+        status,
+        sizeof(status),
+        "%.20s - %d lines %s",
+        editor.filename ? editor.filename : "[No Name]",
+        editor.numberOfRows,
+        editor.dirty ? "(modified)" : ""
+    );
+
+
+    if (length > editor.screenCols) {
+
+        length = editor.screenCols;
+
+    }
+
+
+    append(
+        ab,
+        status,
+        length
+    );
+
+
+    while (length < editor.screenCols) {
+
+        append(ab, " ", 1);
+
+        length++;
+
+    }
+
+
+    append(ab, "\x1b[m", 3);
+
+}
+
+
+
 void editorRefreshScreen() {
 
 
@@ -716,7 +777,7 @@ void editorRefreshScreen() {
 
 
 
-    for (int i = 0; i < editor.screenRows; i++) {
+    for (int i = 0; i < editor.screenRows - 1; i++) {
 
 
         int fileRow = i + editor.rowOffset;
@@ -747,6 +808,9 @@ void editorRefreshScreen() {
 
     }
 
+
+
+    editorDrawStatusBar(&ab);
 
 
     char cursorPosition[32];
@@ -806,6 +870,9 @@ int main(int argc, char *argv[]) {
     editor.rows = NULL;
 
     editor.filename = NULL;
+
+
+    editor.dirty = 0;
 
 
     if (argc >= 2) {
